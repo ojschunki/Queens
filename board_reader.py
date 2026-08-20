@@ -14,10 +14,32 @@ Inference is best-effort; passing --size is the reliable path.
 
 from __future__ import annotations
 
+from typing import NamedTuple
+
 import numpy as np
 from PIL import Image
 
 Grid = list[list[int]]
+
+
+class BoardReading(NamedTuple):
+    """Result of reading a board: the region grid plus the geometry needed to
+    map cells back to pixels (for drawing overlays)."""
+    grid: Grid
+    size: int                                  # N
+    bbox: tuple[int, int, int, int]            # (top, left, bottom, right)
+
+    def cell_center(self, row: int, col: int) -> tuple[float, float]:
+        """Pixel (x, y) center of the given cell."""
+        top, left, bottom, right = self.bbox
+        cell_h = (bottom - top) / self.size
+        cell_w = (right - left) / self.size
+        return left + (col + 0.5) * cell_w, top + (row + 0.5) * cell_h
+
+    def cell_size(self) -> tuple[float, float]:
+        """(width, height) of a single cell in pixels."""
+        top, left, bottom, right = self.bbox
+        return (right - left) / self.size, (bottom - top) / self.size
 
 
 def _load_rgb(path: str) -> np.ndarray:
@@ -157,12 +179,12 @@ def _cluster_colors(colors: list[tuple[int, int, int]], n: int) -> list[int]:
     return labels.tolist()
 
 
-def read_board(path: str, size: int | None = None,
-               bbox: tuple[int, int, int, int] | None = None) -> Grid:
-    """Read a screenshot into an N x N region grid.
+def read_board_details(path: str, size: int | None = None,
+                       bbox: tuple[int, int, int, int] | None = None) -> BoardReading:
+    """Read a screenshot into a region grid plus its pixel geometry.
 
     path : image file (png/jpg screenshot of the board)
-    size : grid dimension N; inferred if omitted (pass it for reliability)
+    size : grid dimension N; inferred if omitted
     bbox : optional (top, left, bottom, right) crop of just the board
     """
     rgb = _load_rgb(path)
@@ -189,4 +211,14 @@ def read_board(path: str, size: int | None = None,
 
     labels = _cluster_colors(colors, n)
     grid: Grid = [labels[r * n:(r + 1) * n] for r in range(n)]
-    return grid
+    return BoardReading(grid=grid, size=n, bbox=bbox)
+
+
+def read_board(path: str, size: int | None = None,
+               bbox: tuple[int, int, int, int] | None = None) -> Grid:
+    """Read a screenshot into an N x N region grid (geometry discarded).
+
+    Convenience wrapper over read_board_details for callers that only need the
+    region labels.
+    """
+    return read_board_details(path, size=size, bbox=bbox).grid

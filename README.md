@@ -18,6 +18,7 @@ board in well under a millisecond. No ML needed for solving.
 |---|---|
 | `solver.py` | Backtracking CSP solver. The core. |
 | `board_reader.py` | Screenshot → region grid (classic CV: crop, sample cell colors, cluster into N). |
+| `overlay.py` | Draws crowns on the solved cells back onto the screenshot. |
 | `main.py` | CLI glue: image in, solution out. |
 | `make_sample.py` | Generates a synthetic board image + ground-truth grid for testing. |
 | `test_solver.py` | Solver tests (validity, unsolvable, edge cases). |
@@ -31,6 +32,9 @@ python main.py board.png
 # Override the detected size, or give an explicit pixel box of just the board
 python main.py board.png --size 8
 python main.py board.png --crop TOP LEFT BOTTOM RIGHT
+
+# Also save an image with crowns drawn on the solution
+python main.py board.png --out solved.png
 
 # Generate a test board and solve it end-to-end
 python make_sample.py 8 7
@@ -51,6 +55,5 @@ python test_solver.py
 
 ## Ideas for later
 
-- Overlay the solution back onto the screenshot image.
 - Browser extension or automated clicker (mind LinkedIn's ToS / bot detection).
 - Solution-uniqueness check (`solve(grid, all_solutions=True)`).

@@ -16,7 +16,8 @@ import argparse
 import sys
 import time
 
-from board_reader import read_board
+from board_reader import read_board_details
+from overlay import render_solution
 from solver import solve_one, format_solution, SolveError
 
 
@@ -27,14 +28,18 @@ def main(argv: list[str] | None = None) -> int:
                     help="grid dimension N (auto-detected if omitted)")
     ap.add_argument("--crop", type=int, nargs=4, metavar=("TOP", "LEFT", "BOTTOM", "RIGHT"),
                     default=None, help="pixel bounding box of just the board")
+    ap.add_argument("--out", metavar="PATH", default=None,
+                    help="write an image of the original screenshot with crowns drawn on the solution")
     args = ap.parse_args(argv)
 
     t0 = time.perf_counter()
     try:
-        grid = read_board(args.image, size=args.size, bbox=tuple(args.crop) if args.crop else None)
+        reading = read_board_details(args.image, size=args.size,
+                                     bbox=tuple(args.crop) if args.crop else None)
     except Exception as e:
         print(f"board reading failed: {e}", file=sys.stderr)
         return 2
+    grid = reading.grid
     t_read = time.perf_counter()
 
     try:
@@ -51,6 +56,14 @@ def main(argv: list[str] | None = None) -> int:
     print()
     print("queen columns by row:", solution)
     print(f"read: {(t_read - t0) * 1000:.1f} ms   solve: {(t_solve - t_read) * 1000:.3f} ms")
+
+    if args.out:
+        try:
+            render_solution(args.image, args.out, reading, solution)
+        except Exception as e:
+            print(f"overlay failed: {e}", file=sys.stderr)
+            return 4
+        print(f"overlay written: {args.out}")
     return 0
 
 
