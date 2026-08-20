@@ -52,21 +52,58 @@ def _find_board_bbox(rgb: np.ndarray) -> tuple[int, int, int, int]:
     return top, left, bottom, right
 
 
-def _infer_grid_size(rgb: np.ndarray, bbox: tuple[int, int, int, int]) -> int:
-    """Count interior grid lines to guess N. Best-effort."""
+# Bounds on plausible board sizes. Real LinkedIn Queens boards run ~7-11.
+_N_MIN, _N_MAX = 5, 12
+# A cell center is "clean" if its central patch is a flat fill (low color spread)
+# and not swamped by grid-line/glyph pixels.
+_CLEAN_VAR_MAX = 18.0
+_CLEAN_KEEP_MIN = 0.5
+_CLEAN_ACCEPT = 0.97
+
+
+def _grid_alignment_score(rgb: np.ndarray, bbox: tuple[int, int, int, int], n: int) -> float:
+    """Fraction of cells whose center patch is a clean flat color when the board
+    is sliced into n x n. Only the true grid aligns cell centers onto flat fills
+    (off the grid lines), so this peaks sharply at the correct N.
+    """
     top, left, bottom, right = bbox
-    board = rgb[top:bottom + 1, left:right + 1].mean(axis=2)
-    dark = board < 110
-    col_line = dark.mean(axis=0) > 0.5  # columns that are mostly dark = vertical lines
-    # Count runs of consecutive line-columns.
-    lines = 0
-    prev = False
-    for v in col_line:
-        if v and not prev:
-            lines += 1
-        prev = v
-    # N cells are separated by N+1 lines (including the two borders).
-    return max(lines - 1, 1)
+    height = bottom - top
+    width = right - left
+    cell_h = height / n
+    cell_w = width / n
+    clean = 0
+    for r in range(n):
+        for c in range(n):
+            r0 = int(top + (r + 0.35) * cell_h)
+            r1 = int(top + (r + 0.65) * cell_h)
+            c0 = int(left + (c + 0.35) * cell_w)
+            c1 = int(left + (c + 0.65) * cell_w)
+            patch = rgb[r0:r1, c0:c1].reshape(-1, 3).astype(float)
+            if patch.size == 0:
+                continue
+            gray = patch.mean(axis=1)
+            keep = (gray > 60) & (gray < 235)  # drop grid lines and glyphs
+            sel = patch[keep] if keep.any() else patch
+            spread = sel.std(axis=0).mean() if len(sel) > 1 else 0.0
+            if keep.mean() > _CLEAN_KEEP_MIN and spread < _CLEAN_VAR_MAX:
+                clean += 1
+    return clean / (n * n)
+
+
+def _infer_grid_size(rgb: np.ndarray, bbox: tuple[int, int, int, int]) -> int:
+    """Infer N by grid-alignment search.
+
+    For each candidate N we slice the board into N x N and measure what fraction
+    of cell centers land on a clean flat color (see _grid_alignment_score). The
+    true grid is the smallest N that scores near-perfect: only correct cell
+    boundaries keep every center off the grid lines. Choosing the smallest such N
+    avoids picking a 2N tiling, which would also align.
+    """
+    scores = {n: _grid_alignment_score(rgb, bbox, n) for n in range(_N_MIN, _N_MAX + 1)}
+    good = [n for n in sorted(scores) if scores[n] >= _CLEAN_ACCEPT]
+    if good:
+        return good[0]
+    return max(scores, key=scores.get)  # fall back to the best-aligned candidate
 
 
 def _sample_cell_color(rgb: np.ndarray, r0: int, r1: int, c0: int, c1: int) -> tuple[int, int, int]:

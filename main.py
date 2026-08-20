@@ -1,10 +1,12 @@
 """CLI: screenshot in, solution out.
 
 Usage:
-  python main.py board.png --size 8
-  python main.py board.png --size 8 --crop TOP LEFT BOTTOM RIGHT
+  python main.py board.png                       # N auto-detected
+  python main.py board.png --size 8              # force grid size
+  python main.py board.png --crop TOP LEFT BOTTOM RIGHT
 
-If the board reader misreads colors, pass an explicit --crop of just the puzzle
+The grid size N is inferred automatically; pass --size only to override it. If
+the board reader misreads colors, pass an explicit --crop of just the puzzle
 (pixel coordinates), which removes surrounding UI from the detection.
 """
 
@@ -21,7 +23,8 @@ from solver import solve_one, format_solution, SolveError
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Solve a LinkedIn Queens board from a screenshot.")
     ap.add_argument("image", help="path to a screenshot of the board")
-    ap.add_argument("--size", type=int, default=None, help="grid dimension N (recommended)")
+    ap.add_argument("--size", type=int, default=None,
+                    help="grid dimension N (auto-detected if omitted)")
     ap.add_argument("--crop", type=int, nargs=4, metavar=("TOP", "LEFT", "BOTTOM", "RIGHT"),
                     default=None, help="pixel bounding box of just the board")
     args = ap.parse_args(argv)

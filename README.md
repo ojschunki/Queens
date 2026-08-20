@@ -25,15 +25,16 @@ board in well under a millisecond. No ML needed for solving.
 ## Usage
 
 ```bash
-# Solve a screenshot (pass the grid size; most reliable)
-python main.py board.png --size 8
+# Solve a screenshot (grid size auto-detected)
+python main.py board.png
 
-# If auto-crop misreads, give an explicit pixel box of just the board
-python main.py board.png --size 8 --crop TOP LEFT BOTTOM RIGHT
+# Override the detected size, or give an explicit pixel box of just the board
+python main.py board.png --size 8
+python main.py board.png --crop TOP LEFT BOTTOM RIGHT
 
 # Generate a test board and solve it end-to-end
 python make_sample.py 8 7
-python main.py sample_8x8.png --size 8
+python main.py sample_8x8.png
 
 # Run tests
 python test_solver.py
@@ -42,14 +43,14 @@ python test_solver.py
 ## Status & known limits
 
 - **Solver**: solid and fast (~0.03 ms for 8×8).
-- **Board reader**: works cleanly on flat-fill boards. Auto-detection of the
-  board bounding box and grid size N is best-effort — pass `--size` (and
-  `--crop` if needed) for reliability. Not yet tested against real LinkedIn
-  screenshots; that's the next step (drop a real one in and tune the crop).
+- **Board reader**: works cleanly on flat-fill boards, verified against a real
+  LinkedIn 9×9 screenshot (see `images/`). Grid size N is auto-detected via a
+  grid-alignment search (the true N is the smallest size that lands every cell
+  center on a flat color, off the grid lines). Pass `--size` to override, or
+  `--crop` if the board bounding box is misdetected.
 
 ## Ideas for later
 
-- Test/tune against real screenshots; auto-detect N robustly.
 - Overlay the solution back onto the screenshot image.
 - Browser extension or automated clicker (mind LinkedIn's ToS / bot detection).
 - Solution-uniqueness check (`solve(grid, all_solutions=True)`).
