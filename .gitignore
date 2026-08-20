@@ -6,5 +6,4 @@ __pycache__/
 venv/
 
 # Generated test artifacts
-sample_*.png
-sample_*.grid.txt
+images/samples/

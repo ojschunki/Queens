@@ -8,11 +8,15 @@ lines — mimicking LinkedIn's board look.
 
 from __future__ import annotations
 
+import os
 import random
 import sys
 
 import numpy as np
 from PIL import Image, ImageDraw
+
+# Generated samples live here so they stay out of the project root.
+OUT_DIR = os.path.join(os.path.dirname(__file__), "images", "samples")
 
 # Distinct pastel-ish colors, similar in spirit to LinkedIn's palette.
 PALETTE = [
@@ -71,11 +75,12 @@ def main() -> int:
     queens = random_valid_placement(n, rng)
     grid = voronoi_regions(n, queens)
     img = render(grid)
-    out = f"sample_{n}x{n}.png"
+    os.makedirs(OUT_DIR, exist_ok=True)
+    out = os.path.join(OUT_DIR, f"sample_{n}x{n}.png")
     img.save(out)
 
     # Save the ground-truth grid alongside for verification.
-    np.savetxt(f"sample_{n}x{n}.grid.txt", np.array(grid), fmt="%d")
+    np.savetxt(os.path.join(OUT_DIR, f"sample_{n}x{n}.grid.txt"), np.array(grid), fmt="%d")
     print(f"wrote {out} and ground-truth grid (N={n}, true queens={queens})")
     return 0
 
