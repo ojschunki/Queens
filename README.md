@@ -12,6 +12,15 @@ column, "no touching" reduces to: adjacent rows' queen columns differ by >1.
 It's a small constraint-satisfaction problem — backtracking solves any real
 board in well under a millisecond. No ML needed for solving.
 
+## Example
+
+A real LinkedIn 9×9 puzzle, and the same screenshot with crowns drawn on the
+solution (`--out`):
+
+| Puzzle | Solved |
+|---|---|
+| ![puzzle](images/puzzles/08_20_26.png) | ![solved](images/solutions/08_20_26_overlay.png) |
+
 ## Files
 
 | File | Role |
